@@ -41,10 +41,33 @@ leaderboards"). It also extends the Zitnik lab's own line on trustworthy ML unde
 distribution shift (TDC → SPECTRA → TxGNN, which explicitly defers uncertainty
 quantification to future work).
 
+## Pipeline
+
+```mermaid
+flowchart LR
+    TDC["TDC ADMET<br/>22 endpoints"] --> SP{{"re-split<br/>(matched replicates)"}}
+    SP --> R["random<br/>(optimistic)"]
+    SP --> S["scaffold<br/>(Bemis-Murcko)"]
+    SP --> C["cluster<br/>(sphere-exclusion)"]
+    R --> M["ECFP4 + XGBoost<br/>· frozen ChemBERTa"]
+    S --> M
+    C --> M
+    M --> GAP["gap atlas<br/>block-bootstrap CI · BH-FDR"]
+    M --> UQ["conformal +<br/>selective prediction"]
+    GAP --> OUT["figures · tables · paper"]
+    UQ --> OUT
+```
+
 ## Results (summary)
 
 Five findings across all 22 TDC ADMET endpoints (ECFP4+XGBoost; relative gaps with split-seed
 block-bootstrap CIs, paired Wilcoxon, BH-FDR):
+
+<p align="center">
+  <img src="paper/figures/fig1_atlas.png" width="60%" alt="Per-endpoint generalization gap: cluster vs scaffold"><br>
+  <em>Cluster (sphere-exclusion) splits reveal a larger relative gap than scaffold on all 22 endpoints —
+  including hERG, which is flat under scaffold but clearly positive under cluster.</em>
+</p>
 
 1. **Gap atlas.** Cluster (sphere-exclusion) splits reveal a gap established on **21/22 endpoints**
    (median relative gap **+0.23**, aggregate *p*<10⁻⁴); scaffold splits are ~2.3× weaker (median
@@ -58,6 +81,15 @@ block-bootstrap CIs, paired Wilcoxon, BH-FDR):
    (ρ=0.07, n.s., under-powered).
 5. **Foundation model.** Frozen ChemBERTa shrinks the gap modestly but significantly (17/22, *p*=0.011)
    without closing it.
+
+<p align="center">
+  <img src="paper/figures/fig2_applicability.png" width="47%" alt="Error vs nearest-neighbour similarity">
+  &nbsp;&nbsp;
+  <img src="paper/figures/fig4_foundation.png" width="47%" alt="ChemBERTa vs ECFP4 relative cluster gap">
+  <br>
+  <em>Left: error rises sharply as molecules leave the training domain (the mechanism behind the gap).
+  Right: ChemBERTa shrinks the gap on most endpoints (points below the diagonal) but does not close it.</em>
+</p>
 
 Plus official-leaderboard anchoring and a unit-tested conformal core. Manuscript:
 [`paper/honest_admet.tex`](paper/honest_admet.tex) (compiles with `tectonic`/Overleaf).
