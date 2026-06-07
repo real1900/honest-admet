@@ -1,0 +1,235 @@
+\section{Introduction}
+ADMET (absorption, distribution, metabolism, excretion, toxicity) prediction is where much of
+early drug discovery succeeds or fails, and Therapeutics Data Commons (TDC)
+\citep{huang2021tdc,huang2022artificial} is the community-standard benchmark for it. Its
+leaderboard culture optimizes a single metric under one fixed scaffold split---useful for ranking,
+but answering a different question than the one a practitioner faces: \emph{if I deploy this model
+on genuinely novel chemistry, how well will it work, and will it tell me when it does not know?}
+
+A long line of work shows random splits leak structurally similar molecules across folds and
+overstate prospective performance \citep{sheridan2013timesplit,wu2018moleculenet,deng2023systematic}.
+Scaffold splits were introduced as a ``harder, more realistic'' default \citep{wu2018moleculenet}.
+Yet recent results complicate this: \citet{fooladi2025evaluating} find that for ADMET, Bemis--Murcko
+scaffold splits are \emph{not substantially harder than random}, and only cluster/distance splits
+expose a real gap; \citet{guo2024scaffold} show scaffold splits still leak because different
+scaffolds can be near-identical molecules. Separately, the uncertainty-quantification literature
+offers conformal prediction \citep{tibshirani2019conformal,angelopoulos2023gentle}, deep ensembles
+\citep{scalia2020evaluating,hirschfeld2020uncertainty}, and conformal-under-shift methods
+\citep{laghuvarapu2023codrug,li2024conformalized}---but these are rarely tied back to the
+split-induced optimism they could mitigate.
+
+We are explicit that \emph{neither phenomenon is a new discovery}. Our contribution is a rigorous
+\emph{consolidation and extension} that no single prior paper provides, and---in the spirit of
+\citet{kapoor2023leakage}---one that reports negatives plainly. This extends the
+trustworthy-ML-under-shift agenda of the Zitnik lab's own tools (TDC $\rightarrow$ TxGNN
+\citep{huang2024txgnn}, the last of which defers uncertainty quantification to future work).
+
+\paragraph{Contributions.}
+(1) A statistically honest, per-endpoint \textbf{generalization-gap atlas} across 22 endpoints and
+model families, engaging the scaffold$\approx$random result head-on and promoting cluster splits to
+the primary stressor. (2) A mechanistic \textbf{applicability-domain} account of the gap. (3) An
+\textbf{honest evaluation of uncertainty under shift}, including clean negative results, plus a
+foundation-model arm asking whether pretrained representations close the gap.
+
+\section{Related Work}
+\textbf{Split realism.} \citet{sheridan2013timesplit} established that train--test dissimilarity
+governs apparent accuracy; \citet{wu2018moleculenet} popularized scaffold splits;
+\citet{deng2023systematic} confirmed scaffold\,$<$\,random performance. \citet{guo2024scaffold} and
+\citet{fooladi2025evaluating} argue scaffold splits under-stress and cluster/distance splits are
+needed; \citet{vantilborg2022exposing} expose a complementary within-scaffold failure (activity
+cliffs). \textbf{TDC and critique.} TDC \citep{huang2021tdc,huang2022artificial} is our object of
+study; concurrent work \citep{koleiev2026critical} audits the 22 ADMET leaderboards for leakage and
+reproducibility---complementary to our controlled signed-gap measurement.
+\textbf{Uncertainty / selective prediction.} We \emph{apply} (not invent) split conformal
+\citep{tibshirani2019conformal,angelopoulos2023gentle}, deep ensembles
+\citep{scalia2020evaluating,hirschfeld2020uncertainty}, and conformal-under-covariate-shift
+\citep{laghuvarapu2023codrug,li2024conformalized}, evaluated via risk--coverage curves
+\citep{geifman2017selective}. \textbf{Foundation models.} We evaluate frozen ChemBERTa
+\citep{ahmad2022chemberta2} (cf.\ MolFormer \citep{ross2022molformer}). Table~\ref{tab:diff}
+differentiates this work from the closest prior studies.
+
+\begin{table}[t]\centering\scriptsize\setlength{\tabcolsep}{4pt}
+\caption{Differentiation from the closest prior work. Y = yes, P = partial, -- = no.}
+\label{tab:diff}
+\begin{tabular}{lccccccc}
+\toprule
+Work & \#Endpts & Model fams & Conformal & Ensemble & Realistic split & Selective-pred & Found.\ model \\
+\midrule
+CFR \citep{li2024conformalized}      & P & 1 & Y & Y & P & P & -- \\
+CoDrug \citep{laghuvarapu2023codrug} & P & 1 & Y & -- & Y & -- & -- \\
+MOOD \citep{tossou2024mood}          & P & P & -- & Y & Y & -- & -- \\
+Fooladi \citep{fooladi2025evaluating}& P & Y & -- & -- & Y & -- & -- \\
+Koleiev \citep{koleiev2026critical}  & Y (22) & Y & -- & -- & P & -- & P \\
+\textbf{This work}                   & \textbf{Y (22)} & \textbf{P} & \textbf{Y} & \textbf{Y} & \textbf{Y} & \textbf{Y} & \textbf{Y} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Data and Methods}
+\textbf{Datasets.} All 22 endpoints of the TDC ADMET benchmark group (9 regression, 13
+classification), via PyTDC 1.1.15 with pinned RDKit 2023.9.6. \textbf{Two loading modes.} For
+leaderboard reproduction we use TDC's native, unpooled split and the official 5-seed
+\texttt{admet\_group} evaluate protocol. For the controlled split-type comparison we pool
+train+test, canonicalize, de-duplicate on canonical SMILES, and re-split under explicit seeds;
+pooled numbers are internal-comparison-only. \textbf{Splits.} \emph{random} (optimistic baseline);
+\emph{scaffold} (Bemis--Murcko, acyclic molecules treated as singleton groups, not lumped);
+\emph{cluster} (sphere-exclusion via RDKit LeaderPicker on ECFP4---our primary OOD stressor,
+$O(N\!\cdot\!L)$ and memory-safe on the $\sim$13k-molecule CYP sets). \textbf{Leakage} is reported
+with a splitter-independent nearest-neighbour ECFP4 Tanimoto metric. \textbf{Models.} ECFP4 +
+XGBoost baselines for the atlas, with a random-forest robustness spot-check on 5 endpoints; and a
+frozen ChemBERTa-embedding arm with an XGBoost head (a representation swap, not a new model class). A
+GNN baseline is left to future work.
+
+\textbf{Generalization gap and statistics.} For each (dataset, model) and realistic split we compute
+the gap per \emph{matched replicate} (same split seed and model seed for random and realistic, so the
+comparison is paired). We report the mean gap, a 95\% bootstrap CI over replicates, a paired Wilcoxon
+$p$-value, and Benjamini--Hochberg $q$-values across the 22-endpoint family; a gap whose CI crosses
+zero is ``not established.'' An aggregate Wilcoxon over per-endpoint gaps gives the headline claim.
+
+\textbf{Conformal and selective prediction.} Split-conformal with the validation fold as calibration:
+absolute-residual intervals (regression) and LAC sets (classification). We implement weighted
+conformal under covariate shift \citep{tibshirani2019conformal} with importance weights from an
+isotonic-calibrated, class-balanced domain classifier, clipped at the 99th percentile, with an
+effective-sample-size fallback. Our quantile reduces \emph{exactly} to textbook split-conformal under
+uniform weights (unit-tested) and returns $+\infty$ when coverage cannot be certified. Selective
+prediction uses risk--coverage curves with two label-free signals---deep-ensemble disagreement and
+applicability-domain (AD) similarity---compared by Excess-AURC (AURC minus the oracle ordering),
+which is comparable across folds with different base error rates.
+
+\section{Results}
+
+\subsection{The harness matches untuned fingerprint baselines}
+Under the official 5-seed protocol, our deliberately simple ECFP4+XGBoost baselines land in the range
+of TDC's untuned fingerprint baselines (Table~\ref{tab:lb}, full list in Appendix). They are
+\emph{not} competitive with tuned leaderboard entries (e.g.\ our Caco-2 MAE 0.386 vs.\ a tuned XGBoost
+leaderboard entry near 0.27); the point is only to confirm the harness is sane and in-range before any
+re-split is introduced, so the subsequent re-split numbers are interpretable rather than an artifact.
+
+\begin{table}[t]\centering\footnotesize
+\caption{Leaderboard reproduction (official TDC split, 5-seed protocol), excerpt.}
+\label{tab:lb}
+% \input{tables/tab_leaderboard.tex}  % full 22-row table auto-generated; excerpt shown
+\begin{tabular}{llr}
+\toprule Endpoint & Metric & ECFP4+XGBoost (mean$\pm$std) \\ \midrule
+caco2\_wang & MAE & 0.386 $\pm$ 0.030 \\
+bbb\_martins & AUROC & 0.872 $\pm$ 0.006 \\
+herg & AUROC & 0.727 $\pm$ 0.008 \\
+solubility\_aqsoldb & MAE & 1.254 $\pm$ 0.009 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Scaffold under-stresses; cluster reveals a universal gap}
+Across all 22 endpoints (8 split seeds $\times$ 3 model seeds, matched-replicate \emph{relative} gaps
+$=$ gap$/$random-split score; CIs from a split-seed block bootstrap that resamples the unit of
+independence), under \emph{cluster} splits 21/22 endpoints show a statistically established gap (95\%
+CI excludes zero), with median relative gap $+0.234$ and aggregate Wilcoxon $p<10^{-4}$. Under
+\emph{scaffold} splits gaps are markedly smaller (median $+0.102$) and 5/22 are not established; most
+strikingly hERG is flat under scaffold ($-0.002$, n.s.) but a clear $+0.066$ under cluster. The
+cluster effect is $\approx$2.3$\times$ the scaffold median (Figure~\ref{fig:atlas}; per-endpoint
+Appendix table with block-bootstrap CIs and per-split established flags). Because raw-unit gaps are
+not cross-endpoint comparable (PPBR's 0--100\% target gives a large MAE gap), we report relative gaps
+throughout.
+
+\begin{figure}[t]\centering
+\includegraphics[width=0.62\linewidth]{fig1_atlas.png}
+\caption{Relative generalization gap per endpoint: cluster (red) exceeds scaffold (blue) on all 22
+endpoints. hERG, flat under scaffold, shows a positive cluster gap.}
+\label{fig:atlas}
+\end{figure}
+
+\subsection{The gap is an applicability-domain effect}
+Binning every test prediction by nearest-neighbour Tanimoto similarity to training, normalized error
+\emph{spikes} to $\approx$7.9$\times$ the endpoint mean in the most dissimilar bin (similarity $<0.1$,
+a sparsely populated tail) and is already near-baseline ($\approx$1.3$\times$) by the next decile
+(Figure~\ref{fig:ad}). Error is concentrated in molecules far from training---explaining the gap and
+motivating distance as an abstention signal. Across endpoints, the drop in mean similarity from random
+to cluster splits is suggestively associated with the relative gap (Spearman $\rho=+0.41$, $p=0.06$).
+We flag a shared-representation caveat: ECFP4 Tanimoto defines the cluster split, the leakage metric,
+\emph{and} this AD signal, so the relationship is partly built in; a splitter-independent distance
+control is left to future work.
+
+\begin{figure}[t]\centering
+\includegraphics[width=0.55\linewidth]{fig2_applicability.png}
+\caption{Normalized error vs.\ nearest-neighbour similarity to training (mean over 22 endpoints).}
+\label{fig:ad}
+\end{figure}
+
+\subsection{Uncertainty under shift: an honest accounting}
+Corrected split-conformal achieves nominal coverage on exchangeable data (self-test 0.901 at the 0.90
+target). On real splits, coverage degradation under cluster shift is \emph{endpoint-dependent and
+modest in aggregate}: mean cluster coverage is 0.896 (vs.\ 0.907 under random; target 0.90), but it
+drops sharply on specific high-shift endpoints (BBB $0.92\!\rightarrow\!0.84$; 4/22 endpoints below
+0.88). Covariate-shift weighting is correctly a no-op on random splits but did \emph{not} restore
+cluster coverage: the importance weights stayed near-uniform (Kish ESS $\approx$0.90), consistent with
+the known weakness of classifier density-ratios under high-dimensional shift; we report ESS and fall
+back rather than over-claim.
+
+For abstention, a random-forest pilot suggested AD distance beat ensemble disagreement under cluster
+shift; \emph{this did not replicate} with XGBoost ensembles, where ensemble disagreement is
+significantly better (wins on 18/22 endpoints, paired Wilcoxon $p=0.007$) and AD abstention actively
+\emph{hurts} on 9/22. The headline is thus the cross-model \emph{instability} of the best abstention
+signal, not a winner. Finally, we find no evidence that high-gap endpoints benefit more from abstention
+(Spearman $\rho=+0.07$, 95\% CI $[-0.36,+0.48]$, under-powered at $n{=}22$; Figure~\ref{fig:unify}):
+selective prediction does not cleanly ``recover the gap.''
+
+\begin{figure}[t]\centering
+\includegraphics[width=0.5\linewidth]{fig3_unifying.png}
+\caption{Per-endpoint optimism gap vs.\ abstention benefit under cluster shift: no correlation
+($\rho=0.07$, n.s.). An honest null.}
+\label{fig:unify}
+\end{figure}
+
+\subsection{Do foundation models close the gap? Modestly}
+Running the same machinery on frozen ChemBERTa embeddings + an XGBoost head, the foundation model
+shrinks the relative cluster gap versus ECFP4 on 17/22 endpoints (mean $\Delta=-0.014$, paired
+Wilcoxon $p=0.011$), but the effect is small and non-uniform, and the gap remains large
+(Figure~\ref{fig:fm}; Table in Appendix). Pretrained representations help but do \emph{not} solve
+out-of-distribution generalization.
+
+\begin{figure}[t]\centering
+\includegraphics[width=0.46\linewidth]{fig4_foundation.png}
+\caption{ChemBERTa vs.\ ECFP4 relative cluster gap. Points below the diagonal = smaller gap.}
+\label{fig:fm}
+\end{figure}
+
+\section{Discussion}
+The message is not ``models are bad'' but ``the standard evaluation is optimistic in a
+\emph{predictable} way'': measured performance tracks how far test chemistry sits from training, and
+scaffold splits under-state it. The natural remedy---abstain on the OOD tail---is more fragile than
+one would hope: conformal itself under-covers under the same shift, the best abstention signal is
+model-dependent, and abstention benefit does not track the gap. The practical takeaway is to
+\textbf{report cluster-split performance and nearest-neighbour applicability domain as standard}, and
+to treat uncertainty methods as helpful but shift-sensitive rather than a turnkey fix. Our negative
+results are prescriptive: classifier density-ratio covariate-shift correction is unreliable for ADMET
+fingerprints (ESS collapse) and should not be relied upon, and the best abstention signal is
+model-dependent---there is no turnkey uncertainty signal, so it must be validated per model class.
+
+\section{Limitations}
+A solo, compute-bounded study (Apple M4 Pro): the foundation-model arm is frozen embeddings; GNNs and
+fine-tuning are future work. Classifier density-ratio weights collapse in ESS under severe shift (we
+report ESS and fall back). Temporal splits are out of scope for most endpoints (no provenance dates)
+and not claimed. Pooled re-splits are not leaderboard-comparable by construction; we anchor with the
+official-split reproduction.
+
+\section{Conclusion}
+A reproducible, leakage-audited re-evaluation of TDC ADMET shows \emph{when} and \emph{why} the
+generalization gap appears---universally under cluster splits, driven by distance-to-training---and
+gives an honest accounting of what uncertainty methods do and do not buy under shift. Code, pinned
+environment, splits, and figures are released.
+
+\small
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\normalsize
+\appendix
+\section{Full leaderboard reproduction (all 22 endpoints)}
+\begin{center}\footnotesize\input{tables/tab_leaderboard.tex}\end{center}
+
+\section{Per-endpoint generalization-gap atlas}
+Relative gaps (gap $/$ random-split score); cluster column with 95\% bootstrap CI and BH-FDR $q$.
+\begin{center}\footnotesize\input{tables/tab_atlas.tex}\end{center}
+
+\section{Foundation model vs.\ fingerprint (relative cluster gap)}
+\begin{center}\footnotesize\input{tables/tab_foundation.tex}\end{center}

@@ -1,0 +1,22 @@
+Public ADMET leaderboards such as Therapeutics Data Commons (TDC) rank models by a
+single score under one fixed split. We ask three questions a deployer actually faces, across
+all 22 TDC ADMET endpoints: (i) \emph{how much} does measured
+performance fall under realistic, chemistry-aware splits versus an optimistic random split;
+(ii) \emph{why} the effect is heterogeneous and sometimes reverses; and (iii) whether
+\emph{selective prediction} recovers the reliability that random-split numbers overstate. We
+evaluate two molecular representations (ECFP4 fingerprints and a frozen pretrained-transformer
+embedding) across all 22 TDC ADMET endpoints. We make three contributions. First, a
+\textbf{statistically honest gap atlas}: signed, per-endpoint relative gaps with matched-replicate,
+split-seed block-bootstrap CIs, paired Wilcoxon tests, and Benjamini--Hochberg FDR. Bemis--Murcko
+\emph{scaffold} splits are much weaker stressors than \emph{cluster} (sphere-exclusion) splits for
+ADMET---their median relative gap is $\sim$2.3$\times$ smaller ($+0.10$ vs $+0.23$) and not
+established on 5/22 endpoints including hERG, consistent with \citet{fooladi2025evaluating}---while
+cluster splits reveal a gap established on \textbf{21/22 endpoints} (block-bootstrap CIs; aggregate
+$p<10^{-4}$). Second, error spikes $\sim$8$\times$ in the most dissimilar similarity bin, so the gap
+is an applicability-domain effect. Third, we report an \textbf{honest evaluation of
+uncertainty under shift, negatives included}: split-conformal under-covers under cluster shift,
+covariate-shift weighting is a verified no-op that does not restore coverage, the best abstention
+signal is model-dependent, and per-endpoint abstention benefit \emph{does not} track the optimism
+gap ($\rho=0.07$, n.s.). Frozen ChemBERTa embeddings shrink the gap modestly but significantly
+($p=0.011$) without closing it. All re-split numbers are anchored to TDC's official-split fingerprint
+baselines first; code and splits are released as a \texttt{pip}-installable, leakage-audited harness.

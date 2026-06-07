@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.ipynb_checkpoints/
+
+# Data caches (TDC downloads + our processed splits)
+data/
+!data/.gitkeep
+
+# Results: keep small summary CSVs/figures, ignore large dumps
+results/**/*.pt
+results/**/*.pkl
+results/**/raw/
+
+# Personal application materials — never publish to the public repo
+application/
+
+# LaTeX build artifacts
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
