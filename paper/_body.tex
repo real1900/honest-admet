@@ -129,7 +129,17 @@ strikingly hERG is flat under scaffold ($-0.002$, n.s.) but a clear $+0.066$ und
 cluster effect is $\approx$2.3$\times$ the scaffold median (Figure~\ref{fig:atlas}; per-endpoint
 Appendix table with block-bootstrap CIs and per-split established flags). Because raw-unit gaps are
 not cross-endpoint comparable (PPBR's 0--100\% target gives a large MAE gap), we report relative gaps
-throughout.
+throughout. The realistic splits genuinely push test chemistry out of domain: mean nearest-neighbour
+Tanimoto similarity to the training set falls from $0.56$ (random) to $0.41$ (scaffold) to $0.28$
+(cluster) across the 22 endpoints (Figure~\ref{fig:leak}).
+
+\begin{figure}[t]\centering
+\includegraphics[width=0.55\linewidth]{fig5_leakage_gradient.png}
+\caption{Mean nearest-neighbour Tanimoto similarity (test $\to$ nearest training molecule) per
+endpoint. Realistic splits push the test set out of the training domain; cluster is the strongest
+stressor.}
+\label{fig:leak}
+\end{figure}
 
 \begin{figure}[t]\centering
 \includegraphics[width=0.62\linewidth]{fig1_atlas.png}
@@ -160,10 +170,18 @@ Corrected split-conformal achieves nominal coverage on exchangeable data (self-t
 target). On real splits, coverage degradation under cluster shift is \emph{endpoint-dependent and
 modest in aggregate}: mean cluster coverage is 0.896 (vs.\ 0.907 under random; target 0.90), but it
 drops sharply on specific high-shift endpoints (BBB $0.92\!\rightarrow\!0.84$; 4/22 endpoints below
-0.88). Covariate-shift weighting is correctly a no-op on random splits but did \emph{not} restore
+0.88; Figure~\ref{fig:cov}). Covariate-shift weighting is correctly a no-op on random splits but did \emph{not} restore
 cluster coverage: the importance weights stayed near-uniform (Kish ESS $\approx$0.90), consistent with
 the known weakness of classifier density-ratios under high-dimensional shift; we report ESS and fall
 back rather than over-claim.
+
+\begin{figure}[t]\centering
+\includegraphics[width=0.55\linewidth]{fig6_coverage.png}
+\caption{Split-conformal coverage per endpoint (target 0.90). Near-nominal on average for all splits,
+but the lower tail degrades under cluster shift (worst: BBB $\approx$0.84); degradation is
+endpoint-specific, not uniform.}
+\label{fig:cov}
+\end{figure}
 
 For abstention, a random-forest pilot suggested AD distance beat ensemble disagreement under cluster
 shift; \emph{this did not replicate} with XGBoost ensembles, where ensemble disagreement is
