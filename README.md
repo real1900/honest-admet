@@ -58,6 +58,13 @@ flowchart LR
     UQ --> OUT
 ```
 
+<p align="center">
+  <img src="paper/figures/fig5_leakage_gradient.png" width="58%" alt="Split leakage gradient"><br>
+  <em>The premise, visualized: realistic splits steadily push the test set's chemistry away from
+  training (each point = one of 22 endpoints). Cluster splits are the strongest stressor — which is
+  why they reveal the gap that scaffold splits under-state.</em>
+</p>
+
 ## Results (summary)
 
 Five findings across all 22 TDC ADMET endpoints (ECFP4+XGBoost; relative gaps with split-seed
@@ -89,6 +96,13 @@ block-bootstrap CIs, paired Wilcoxon, BH-FDR):
   <br>
   <em>Left: error rises sharply as molecules leave the training domain (the mechanism behind the gap).
   Right: ChemBERTa shrinks the gap on most endpoints (points below the diagonal) but does not close it.</em>
+</p>
+
+<p align="center">
+  <img src="paper/figures/fig6_coverage.png" width="56%" alt="Conformal coverage distribution"><br>
+  <em>Honest accounting: split-conformal coverage stays near the 90% target on average across all 22
+  endpoints, but its lower tail drops under cluster shift (worst: BBB ≈ 0.84) — the degradation is
+  endpoint-specific, not uniform.</em>
 </p>
 
 Plus official-leaderboard anchoring and a unit-tested conformal core. Manuscript:
