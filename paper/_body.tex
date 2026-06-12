@@ -224,7 +224,8 @@ fingerprints (ESS collapse) and should not be relied upon, and the best abstenti
 model-dependent---there is no turnkey uncertainty signal, so it must be validated per model class.
 
 \section{Limitations}
-A solo, compute-bounded study (Apple M4 Pro): the foundation-model arm is frozen embeddings; GNNs and
+Compute was bounded to a single consumer device (Apple M4 Pro), which keeps the study fully
+reproducible on commodity hardware but limits the foundation-model arm to frozen embeddings; GNNs and
 fine-tuning are future work. Classifier density-ratio weights collapse in ESS under severe shift (we
 report ESS and fall back). Temporal splits are out of scope for most endpoints (no provenance dates)
 and not claimed. Pooled re-splits are not leaderboard-comparable by construction; we anchor with the
